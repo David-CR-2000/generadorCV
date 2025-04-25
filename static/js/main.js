@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const exampleModal = new bootstrap.Modal(document.getElementById('exampleModal'));
     const exampleContent = document.getElementById('example-content');
     const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
-    const downloadLink = document.getElementById('download-link');
+    const pdfTemplate = document.getElementById('pdf-template');
     const cvPreview = document.getElementById('cv-preview');
     
     // Cargar colores predeterminados
@@ -328,15 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Añadir evento para el botón de ejemplo
         newExperience.querySelector('.example-btn').addEventListener('click', function() {
             const field = this.getAttribute('data-field');
-            fetch(`/ejemplos/${field}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.example) {
-                        exampleContent.innerHTML = `<p>${data.example}</p>`;
-                        exampleModal.show();
-                    }
-                })
-                .catch(error => console.error('Error al cargar ejemplo:', error));
+            showExample(field);
         });
         
         // Actualizar la vista previa
@@ -442,89 +434,53 @@ document.addEventListener('DOMContentLoaded', function() {
     exampleBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const field = this.getAttribute('data-field');
-            fetch(`/ejemplos/${field}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.example) {
-                        exampleContent.innerHTML = `<p>${data.example}</p>`;
-                        exampleModal.show();
-                    }
-                })
-                .catch(error => console.error('Error al cargar ejemplo:', error));
+            showExample(field);
         });
     });
     
+    // Mostrar ejemplo (usando los datos locales)
+    function showExample(field) {
+        if (fieldExamples[field]) {
+            exampleContent.innerHTML = `<p>${fieldExamples[field]}</p>`;
+            exampleModal.show();
+        } else {
+            console.error('Ejemplo no encontrado para el campo:', field);
+        }
+    }
+    
     // Cargar colores
     function loadColors() {
-        fetch('/colores')
-            .then(response => response.json())
-            .then(data => {
-                const colorOptions = document.getElementById('color-options');
-                data.forEach(color => {
-                    const colorOption = document.createElement('div');
-                    colorOption.className = 'color-option';
-                    colorOption.style.backgroundColor = color.hex;
-                    colorOption.setAttribute('data-color', color.hex);
-                    colorOption.setAttribute('title', color.name);
-                    colorOptions.appendChild(colorOption);
-                    
-                    // Seleccionar el primer color por defecto
-                    if (colorOptions.children.length === 1) {
-                        colorOption.classList.add('selected');
-                        document.getElementById('color_principal').value = color.hex;
-                    }
-                });
+        try {
+            const colorOptions = document.getElementById('color-options');
+            colorOptions.innerHTML = '';
+            
+            defaultColors.forEach(color => {
+                const colorOption = document.createElement('div');
+                colorOption.className = 'color-option';
+                colorOption.style.backgroundColor = color.hex;
+                colorOption.setAttribute('data-color', color.hex);
+                colorOption.setAttribute('title', color.name);
+                colorOptions.appendChild(colorOption);
                 
-                // Añadir eventos para seleccionar color
-                document.querySelectorAll('.color-option').forEach(option => {
-                    option.addEventListener('click', function() {
-                        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-                        this.classList.add('selected');
-                        document.getElementById('color_principal').value = this.getAttribute('data-color');
-                        updatePreview();
-                    });
-                });
-            })
-            .catch(error => {
-                console.error('Error al cargar colores:', error);
-                // Cargar colores por defecto si falla la petición
-                const defaultColors = [
-                    { name: 'Azul Oscuro', hex: '#2c3e50' },
-                    { name: 'Azul', hex: '#3498db' },
-                    { name: 'Verde', hex: '#2ecc71' },
-                    { name: 'Morado', hex: '#9b59b6' },
-                    { name: 'Rojo', hex: '#e74c3c' },
-                    { name: 'Naranja', hex: '#e67e22' },
-                    { name: 'Gris', hex: '#7f8c8d' },
-                    { name: 'Negro', hex: '#2d3436' }
-                ];
-                
-                const colorOptions = document.getElementById('color-options');
-                defaultColors.forEach(color => {
-                    const colorOption = document.createElement('div');
-                    colorOption.className = 'color-option';
-                    colorOption.style.backgroundColor = color.hex;
-                    colorOption.setAttribute('data-color', color.hex);
-                    colorOption.setAttribute('title', color.name);
-                    colorOptions.appendChild(colorOption);
-                    
-                    // Seleccionar el primer color por defecto
-                    if (colorOptions.children.length === 1) {
-                        colorOption.classList.add('selected');
-                        document.getElementById('color_principal').value = color.hex;
-                    }
-                });
-                
-                // Añadir eventos para seleccionar color
-                document.querySelectorAll('.color-option').forEach(option => {
-                    option.addEventListener('click', function() {
-                        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-                        this.classList.add('selected');
-                        document.getElementById('color_principal').value = this.getAttribute('data-color');
-                        updatePreview();
-                    });
+                // Seleccionar el primer color por defecto
+                if (colorOptions.children.length === 1) {
+                    colorOption.classList.add('selected');
+                    document.getElementById('color_principal').value = color.hex;
+                }
+            });
+            
+            // Añadir eventos para seleccionar color
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('color_principal').value = this.getAttribute('data-color');
+                    updatePreview();
                 });
             });
+        } catch (error) {
+            console.error('Error al cargar colores:', error);
+        }
     }
     
     // Actualizar vista previa del CV
@@ -573,11 +529,10 @@ document.addEventListener('DOMContentLoaded', function() {
         ['educacion', 'experiencia', 'idiomas'].forEach(key => {
             if (data[key]) {
                 data[key] = data[key].filter(item => {
-                    return Object.values(item).some(val => val.trim() !== '');
+                    return Object.values(item).some(val => val.trim && val.trim() !== '');
                 });
             }
         });
-
         
         // Generar HTML de vista previa
         let previewHTML = `
@@ -711,24 +666,277 @@ document.addEventListener('DOMContentLoaded', function() {
     // Formatear fecha (YYYY-MM a MM/YYYY)
     function formatDate(dateString) {
         if (!dateString) return '';
+        if (dateString === 'Presente') return 'Presente';
+        
         const [year, month] = dateString.split('-');
         const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         return `${monthNames[parseInt(month) - 1]} ${year}`;
     }
     
-    // Envío del formulario
-    cvForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    // Generar HTML completo para el PDF
+    function generatePdfHtml(data) {
+        // Obtener color principal o usar uno predeterminado
+        const colorPrincipal = data.color_principal || '#2c3e50';
         
-        // Validar formulario
-        if (!validatePersonalTab()) {
-            // Mostrar pestaña con errores
-            const personalTab = bootstrap.Tab.getOrCreateInstance(document.querySelector('#personal-tab'));
-            personalTab.show();
-            return;
+        // Crear HTML para el CV
+        let html = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>CV - ${data.nombre || 'Sin nombre'}</title>
+            <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+            
+            body { 
+                font-family: 'Roboto', Arial, sans-serif;
+                line-height: 1.6;
+                margin: 0;
+                padding: 20px;
+                color: #333;
+                font-size: 12pt;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            h1 { 
+                color: ${colorPrincipal}; 
+                font-size: 24pt;
+                margin-bottom: 5px;
+            }
+            h2 { 
+                color: ${colorPrincipal}; 
+                font-size: 18pt;
+                margin-top: 5px;
+                margin-bottom: 15px;
+            }
+            h3 { 
+                color: ${colorPrincipal}; 
+                font-size: 16pt;
+                margin-bottom: 10px;
+            }
+            .header { 
+                margin-bottom: 30px;
+                border-bottom: 2px solid ${colorPrincipal};
+                padding-bottom: 20px;
+            }
+            .section { 
+                margin-bottom: 25px;
+                page-break-inside: avoid;
+            }
+            .section-title { 
+                border-bottom: 1px solid ${colorPrincipal};
+                padding-bottom: 5px;
+                margin-bottom: 15px;
+                font-weight: bold;
+                color: ${colorPrincipal};
+                font-size: 14pt;
+            }
+            .job-item, .education-item { 
+                margin-bottom: 20px;
+                page-break-inside: avoid;
+            }
+            .job-title, .education-title { 
+                font-weight: bold;
+                font-size: 13pt;
+            }
+            .job-company, .education-institution { 
+                font-style: italic;
+                font-size: 12pt;
+            }
+            .job-dates, .education-dates { 
+                color: #666; 
+                font-size: 11pt;
+                margin-bottom: 5px;
+            }
+            .contact-info { 
+                margin-bottom: 15px;
+                font-size: 11pt;
+            }
+            .skills-list { 
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            .skill-item {
+                background-color: ${colorPrincipal};
+                color: white;
+                padding: 5px 10px;
+                border-radius: 15px;
+                font-size: 11pt;
+                display: inline-block;
+                margin-right: 5px;
+                margin-bottom: 5px;
+            }
+            p {
+                margin-top: 5px;
+                margin-bottom: 5px;
+            }
+            ul {
+                margin-top: 5px;
+                padding-left: 20px;
+            }
+            li {
+                margin-bottom: 3px;
+            }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+            <div class="header">
+                <h1>${data.nombre || 'Sin nombre'}</h1>
+                ${data.profesion ? `<h2>${data.profesion}</h2>` : ''}
+                <div class="contact-info">
+                ${data.email ? `<div>Email: ${data.email}</div>` : ''}
+                ${data.telefono ? `<div>Teléfono: ${data.telefono}</div>` : ''}
+                ${data.direccion ? `<div>Dirección: ${data.direccion}</div>` : ''}
+                ${data.linkedin ? `<div>LinkedIn: ${data.linkedin}</div>` : ''}
+                ${data.sitio_web ? `<div>Web: ${data.sitio_web}</div>` : ''}
+                </div>
+            </div>`;
+
+        // Resumen profesional
+        if (data.resumen) {
+            html += `
+            <div class="section">
+                <h3 class="section-title">RESUMEN PROFESIONAL</h3>
+                <p>${data.resumen}</p>
+            </div>`;
         }
-        
-        // Preparar datos para enviar
+
+        // Experiencia laboral
+        if (data.experiencia && data.experiencia.length > 0) {
+            html += `
+            <div class="section">
+                <h3 class="section-title">EXPERIENCIA LABORAL</h3>`;
+            
+            data.experiencia.forEach(exp => {
+                if (!exp.puesto && !exp.empresa) return;
+                
+                const puesto = exp.puesto || 'Puesto no especificado';
+                const empresa = exp.empresa || 'Empresa no especificada';
+                
+                let fechas = '';
+                if (exp.fecha_inicio) {
+                    fechas += formatDate(exp.fecha_inicio);
+                }
+                if (exp.fecha_fin) {
+                    fechas += ` - ${formatDate(exp.fecha_fin)}`;
+                } else if (exp.fecha_inicio) {
+                    fechas += ' - Presente';
+                }
+                
+                // Formatear la descripción para preservar saltos de línea
+                let descripcion = '';
+                if (exp.descripcion) {
+                    descripcion = exp.descripcion
+                        .replace(/\n/g, '<br>')
+                        .replace(/• /g, '<li>')
+                        .replace(/\n/g, '</li>')
+                        .replace(/<br><li>/g, '<li>');
+                    
+                    if (descripcion.includes('<li>')) {
+                        descripcion = `<ul>${descripcion}</li></ul>`;
+                    } else {
+                        descripcion = `<p>${descripcion}</p>`;
+                    }
+                }
+                
+                html += `
+                <div class="job-item">
+                    <div class="job-title">${puesto}</div>
+                    <div class="job-company">${empresa}</div>
+                    ${fechas ? `<div class="job-dates">${fechas}</div>` : ''}
+                    ${descripcion}
+                </div>`;
+            });
+            
+            html += `</div>`;
+        }
+
+        // Educación
+        if (data.educacion && data.educacion.length > 0) {
+            html += `
+            <div class="section">
+                <h3 class="section-title">EDUCACIÓN</h3>`;
+            
+            data.educacion.forEach(edu => {
+                if (!edu.titulo && !edu.institucion) return;
+                
+                const titulo = edu.titulo || 'Título no especificado';
+                const institucion = edu.institucion || 'Institución no especificada';
+                
+                let fechas = '';
+                if (edu.fecha_inicio) {
+                    fechas += formatDate(edu.fecha_inicio);
+                }
+                if (edu.fecha_fin) {
+                    fechas += ` - ${formatDate(edu.fecha_fin)}`;
+                }
+                
+                // Formatear la descripción para preservar saltos de línea
+                let descripcion = '';
+                if (edu.descripcion) {
+                    descripcion = `<p>${edu.descripcion.replace(/\n/g, '<br>')}</p>`;
+                }
+                
+                html += `
+                <div class="education-item">
+                    <div class="education-title">${titulo}</div>
+                    <div class="education-institution">${institucion}</div>
+                    ${fechas ? `<div class="education-dates">${fechas}</div>` : ''}
+                    ${descripcion}
+                </div>`;
+            });
+            
+            html += `</div>`;
+        }
+
+        // Habilidades
+        if (data.habilidades && data.habilidades.length > 0) {
+            html += `
+            <div class="section">
+                <h3 class="section-title">HABILIDADES</h3>
+                <div class="skills-list">`;
+            
+            data.habilidades.forEach(skill => {
+                html += `<span class="skill-item">${skill}</span>`;
+            });
+            
+            html += `</div>
+            </div>`;
+        }
+
+        // Idiomas
+        if (data.idiomas && data.idiomas.length > 0) {
+            html += `
+            <div class="section">
+                <h3 class="section-title">IDIOMAS</h3>
+                <ul>`;
+            
+            data.idiomas.forEach(idioma => {
+                if (idioma.idioma && idioma.nivel) {
+                    html += `<li><strong>${idioma.idioma}:</strong> ${idioma.nivel}</li>`;
+                }
+            });
+            
+            html += `</ul>
+            </div>`;
+        }
+
+        html += `
+            </div>
+        </body>
+        </html>`;
+
+        return html;
+    }
+
+    // Función para obtener los datos del formulario
+    function getFormData() {
         const formData = new FormData(cvForm);
         const data = {};
         
@@ -743,12 +951,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     data[mainKey] = [];
                 }
                 
-                // Asegurarse de que el índice sea un número para crear un array correcto
                 const index = parseInt(subKey);
                 
-                // Inicializar el array con elementos vacíos si es necesario
-                while (data[mainKey].length <= index) {
-                    data[mainKey].push({});
+                if (!data[mainKey][index]) {
+                    data[mainKey][index] = {};
                 }
                 
                 data[mainKey][index][fieldKey] = value;
@@ -757,69 +963,445 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Añadir habilidades (asegurarse de que sea un array válido)
-        data.habilidades = Array.isArray(skills) ? skills : [];
+        // Añadir habilidades
+        data.habilidades = skills;
         
-        // Limpiar arrays vacíos
-        ['educacion', 'experiencia', 'idiomas'].forEach(key => {
-            if (data[key]) {
-                // Asegurarse de que sea un array antes de filtrar
-                if (Array.isArray(data[key])) {
-                    data[key] = data[key].filter(item => {
-                        return item && typeof item === 'object' && Object.values(item).some(val => val && val.trim && val.trim() !== '');
-                    });
-                } else {
-                    // Si no es un array, inicializarlo como array vacío
-                    data[key] = [];
+        // Verificar checkboxes de trabajo actual
+        document.querySelectorAll('.trabajo-actual').forEach((checkbox, index) => {
+            const fechaFinInput = document.querySelector(`input[name="experiencia[${index}][fecha_fin]"]`);
+            if (fechaFinInput && checkbox.checked) {
+                if (data.experiencia && data.experiencia[index]) {
+                    data.experiencia[index].fecha_fin = 'Presente';
                 }
             }
         });
         
-        // Mostrar indicador de carga
-        document.getElementById('generate-cv').disabled = true;
-        document.getElementById('generate-cv').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
-        
-        // Enviar datos al servidor
-        fetch('/generar-pdf', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
+        // Limpiar arrays vacíos
+        ['educacion', 'experiencia', 'idiomas'].forEach(key => {
+            if (data[key]) {
+                data[key] = data[key].filter(item => {
+                    return Object.values(item).some(val => val.trim && val.trim() !== '');
+                });
             }
-            return response.json();
-        })
-        .then(result => {
-            // Restaurar botón
-            document.getElementById('generate-cv').disabled = false;
-            document.getElementById('generate-cv').innerHTML = 'Generar CV';
-            
-            if (result.errors) {
-                // Mostrar errores
-                alert('Error: ' + result.errors.join('\n'));
-            } else if (result.success) {
-                // Mostrar modal de descarga
-                downloadLink.href = result.pdf_url;
-                downloadModal.show();
-            } else {
-                // Si no hay errores específicos ni éxito, mostrar mensaje genérico
-                alert('No se pudo generar el CV. Por favor, verifica los datos e intenta nuevamente.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Ha ocurrido un error al generar el CV: ' + error.message);
-            
-            // Restaurar botón
-            document.getElementById('generate-cv').disabled = false;
-            document.getElementById('generate-cv').innerHTML = 'Generar CV';
         });
-    });
-    
+        
+        return data;
+    }
+
+    // Función para generar PDF
+    function generatePdf() {
+        try {
+            // Validar formulario primero
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Mostrar mensaje de carga en la interfaz principal
+            showLoadingMessage('Generando PDF, por favor espere...');
+            
+            // Obtener los datos del formulario
+            const formData = getFormData();
+            const htmlContent = generatePdfHtml(formData);
+            
+            // Crear una ventana emergente invisible donde generaremos el PDF
+            // Con tamaño mínimo y fuera de la pantalla visible
+            const popupWindow = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000');
+            
+            if (!popupWindow) {
+                // Si se bloquea la ventana emergente, mostrar mensaje y usar método alternativo
+                console.warn('Ventana emergente bloqueada, usando método alternativo.');
+                hideLoadingMessage();
+                showErrorMessage('Por favor permite ventanas emergentes para generar el PDF correctamente.');
+                generatePdfLegacyMethod(formData);
+                return;
+            }
+            
+            // Escribir el contenido HTML completo en la ventana emergente
+            popupWindow.document.open();
+            popupWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Generando PDF</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        body {
+                            width: 210mm;
+                            margin: 0;
+                            padding: 0;
+                            background-color: white;
+                        }
+                    </style>
+                    <!-- Cargar las bibliotecas necesarias en la ventana emergente -->
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+                </head>
+                <body>
+                    <div id="pdf-content">${htmlContent}</div>
+                    
+                    <script>
+                        // Esta función se ejecuta en la ventana emergente
+                        function generatePDFInPopup() {
+                            const element = document.getElementById('pdf-content');
+                            const filename = 'CV-${formData.nombre ? formData.nombre.replace(/"/g, '\\"') : 'SinNombre'}.pdf';
+                            
+                            const options = {
+                                margin: [10, 10, 10, 10],
+                                filename: filename,
+                                image: { type: 'jpeg', quality: 0.98 },
+                                html2canvas: { 
+                                    scale: 2,
+                                    useCORS: true,
+                                    allowTaint: true,
+                                    logging: false,
+                                    letterRendering: true
+                                },
+                                jsPDF: { 
+                                    unit: 'mm', 
+                                    format: 'a4', 
+                                    orientation: 'portrait',
+                                    compress: true
+                                }
+                            };
+                            
+                            // Esperar a que todo se cargue y renderice correctamente
+                            setTimeout(() => {
+                                try {
+                                    // Generar PDF usando html2pdf
+                                    html2pdf().from(element).set(options).save().then(() => {
+                                        // Cerrar la ventana emergente automáticamente después de la descarga
+                                        setTimeout(() => {
+                                            window.close();
+                                        }, 500);
+                                        
+                                        // Notificar a la ventana principal
+                                        window.opener.postMessage('pdf-generated', '*');
+                                    }).catch(error => {
+                                        console.error('Error al generar PDF:', error);
+                                        window.opener.postMessage('pdf-error', '*');
+                                        setTimeout(() => window.close(), 500);
+                                    });
+                                } catch (error) {
+                                    console.error('Error al generar PDF:', error);
+                                    window.opener.postMessage('pdf-error', '*');
+                                    setTimeout(() => window.close(), 500);
+                                }
+                            }, 1000);
+                        }
+                        
+                        // Iniciar la generación del PDF cuando la página esté completamente cargada
+                        window.onload = generatePDFInPopup;
+                    </script>
+                </body>
+                </html>
+            `);
+            popupWindow.document.close();
+            
+            // Configurar listener para recibir mensajes de la ventana emergente
+            const messageListener = function(event) {
+                // Verificar si el mensaje es de nuestra ventana emergente
+                if (event.data === 'pdf-generated') {
+                    // PDF generado con éxito
+                    hideLoadingMessage();
+                    showSuccessMessage('¡CV generado con éxito!');
+                    
+                    // Mostrar modal de descarga
+                    const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+                    downloadModal.show();
+                    
+                    // Limpiar listener
+                    window.removeEventListener('message', messageListener);
+                    
+                    // Intentar cerrar la ventana emergente si aún está abierta
+                    try {
+                        if (!popupWindow.closed) {
+                            popupWindow.close();
+                        }
+                    } catch (e) {
+                        console.error('Error al cerrar ventana:', e);
+                    }
+                } else if (event.data === 'pdf-error') {
+                    // Error en la generación del PDF
+                    hideLoadingMessage();
+                    showErrorMessage('Hubo un problema al generar el PDF. Intentando método alternativo...');
+                    
+                    // Limpiar listener
+                    window.removeEventListener('message', messageListener);
+                    
+                    // Intentar con método alternativo
+                    generatePdfLegacyMethod(formData);
+                    
+                    // Intentar cerrar la ventana emergente
+                    try {
+                        if (!popupWindow.closed) {
+                            popupWindow.close();
+                        }
+                    } catch (e) {
+                        console.error('Error al cerrar ventana:', e);
+                    }
+                }
+            };
+            
+            // Añadir listener para mensajes
+            window.addEventListener('message', messageListener);
+            
+            // Establecer un tiempo de espera por si no recibimos respuesta
+            setTimeout(() => {
+                // Verificar si ya se procesó el mensaje
+                const downloadModal = document.getElementById('downloadModal');
+                if (!downloadModal.classList.contains('show')) {
+                    hideLoadingMessage();
+                    showErrorMessage('Tiempo de espera agotado. Intentando método alternativo...');
+                    
+                    // Limpiar listener
+                    window.removeEventListener('message', messageListener);
+                    
+                    // Intentar con método alternativo
+                    generatePdfLegacyMethod(formData);
+                    
+                    // Intentar cerrar la ventana emergente
+                    try {
+                        if (popupWindow && !popupWindow.closed) {
+                            popupWindow.close();
+                        }
+                    } catch (e) {
+                        console.error('Error al cerrar ventana:', e);
+                    }
+                }
+            }, 15000); // 15 segundos de espera máxima
+        } catch (error) {
+            console.error('Error global en generación:', error);
+            hideLoadingMessage();
+            showErrorMessage('Error al generar el PDF. Intentando método alternativo...');
+            
+            // Intentar con método alternativo
+            generatePdfLegacyMethod(getFormData());
+        }
+    }
+
+    // Método alternativo para generar PDF (sin ventana emergente)
+    function generatePdfLegacyMethod(formData) {
+        try {
+            // Mostrar mensaje de carga
+            showLoadingMessage('Generando PDF (método alternativo)...');
+            
+            // Crear un contenedor oculto para el PDF
+            const pdfContainer = document.createElement('div');
+            pdfContainer.id = 'pdf-legacy-container';
+            
+            // Posicionar completamente fuera de la vista y hacerlo invisible
+            pdfContainer.style.cssText = `
+                position: fixed;
+                width: 0;
+                height: 0;
+                left: -9999px;
+                top: -9999px;
+                z-index: -9999;
+                opacity: 0;
+                pointer-events: none;
+                overflow: hidden;
+            `;
+            
+            // Envolver el contenido en otro div con el tamaño de A4
+            const innerContainer = document.createElement('div');
+            innerContainer.style.width = '210mm';
+            innerContainer.style.backgroundColor = 'white';
+            innerContainer.innerHTML = generatePdfHtml(formData);
+            
+            // Añadir al contenedor principal
+            pdfContainer.appendChild(innerContainer);
+            
+            // Añadir a la página pero fuera del flujo normal
+            document.body.appendChild(pdfContainer);
+            
+            // Esperar a que se renderice todo el contenido
+            setTimeout(() => {
+                try {
+                    const options = {
+                        margin: [10, 10, 10, 10],
+                        filename: `CV-${formData.nombre || 'SinNombre'}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { 
+                            scale: 2,
+                            useCORS: true,
+                            allowTaint: true,
+                            logging: false
+                        },
+                        jsPDF: { 
+                            unit: 'mm', 
+                            format: 'a4', 
+                            orientation: 'portrait',
+                            compress: true
+                        }
+                    };
+                    
+                    // Usar html2pdf
+                    html2pdf()
+                        .from(innerContainer)
+                        .set(options)
+                        .save()
+                        .then(() => {
+                            // Limpiar
+                            document.body.removeChild(pdfContainer);
+                            hideLoadingMessage();
+                            showSuccessMessage('¡CV generado con éxito!');
+                            
+                            // Mostrar modal de descarga
+                            const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+                            downloadModal.show();
+                        })
+                        .catch(error => {
+                            console.error('Error en método legacy:', error);
+                            
+                            // Limpiar
+                            document.body.removeChild(pdfContainer);
+                            hideLoadingMessage();
+                            showErrorMessage('No se pudo generar el PDF. Por favor, inténtalo más tarde o con otro navegador.');
+                        });
+                } catch (error) {
+                    console.error('Error en configuración legacy:', error);
+                    
+                    // Limpiar
+                    if (pdfContainer.parentNode) {
+                        document.body.removeChild(pdfContainer);
+                    }
+                    hideLoadingMessage();
+                    showErrorMessage('Error al generar el PDF. Por favor, inténtalo más tarde.');
+                }
+            }, 1000);
+        } catch (error) {
+            console.error('Error global en método legacy:', error);
+            hideLoadingMessage();
+            showErrorMessage('No se pudo generar el PDF. Por favor, revisa tu conexión e inténtalo nuevamente.');
+        }
+    }
+
+    // Validar formulario completo
+    function validateForm() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const telefono = document.getElementById('telefono').value.trim();
+        
+        if (!nombre || !email || !telefono) {
+            showErrorMessage('Por favor completa todos los campos obligatorios (Nombre, Email, Teléfono)');
+            
+            // Mostrar pestaña de datos personales
+            const personalTab = bootstrap.Tab.getOrCreateInstance(document.querySelector('#personal-tab'));
+            personalTab.show();
+            
+            return false;
+        }
+        
+        // Validar email
+        if (!validateEmail(email)) {
+            showErrorMessage('Por favor ingresa un email válido');
+            
+            // Mostrar pestaña de datos personales
+            const personalTab = bootstrap.Tab.getOrCreateInstance(document.querySelector('#personal-tab'));
+            personalTab.show();
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Funciones de utilidad para mostrar mensajes
+    function showLoadingMessage(message) {
+        // Deshabilitar botón de generar
+        const generateBtn = document.getElementById('generate-cv');
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
+        }
+        
+        // Mostrar mensaje de carga
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loading-message';
+        loadingDiv.className = 'alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3';
+        loadingDiv.style.zIndex = '9999';
+        loadingDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-2" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <div>${message}</div>
+            </div>
+        `;
+        
+        // Eliminar mensaje existente si hay
+        const existingMessage = document.getElementById('loading-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        document.body.appendChild(loadingDiv);
+    }
+
+    function hideLoadingMessage() {
+        // Habilitar botón de generar
+        const generateBtn = document.getElementById('generate-cv');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = 'Generar CV';
+        }
+        
+        // Eliminar mensaje de carga
+        const loadingMessage = document.getElementById('loading-message');
+        if (loadingMessage) {
+            loadingMessage.remove();
+        }
+    }
+
+    function showSuccessMessage(message) {
+        const successDiv = document.createElement('div');
+        successDiv.id = 'success-message';
+        successDiv.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+        successDiv.style.zIndex = '9999';
+        successDiv.innerHTML = message;
+        
+        // Eliminar mensaje existente si hay
+        const existingMessage = document.getElementById('success-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        document.body.appendChild(successDiv);
+        
+        // Auto ocultar después de 5 segundos
+        setTimeout(() => {
+            const msgDiv = document.getElementById('success-message');
+            if (msgDiv) {
+                msgDiv.remove();
+            }
+        }, 5000);
+    }
+
+    function showErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'error-message';
+        errorDiv.className = 'alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.innerHTML = message;
+        
+        // Eliminar mensaje existente si hay
+        const existingMessage = document.getElementById('error-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        document.body.appendChild(errorDiv);
+        
+        // Auto ocultar después de 5 segundos
+        setTimeout(() => {
+            const msgDiv = document.getElementById('error-message');
+            if (msgDiv) {
+                msgDiv.remove();
+            }
+        }, 5000);
+    }
+
     // Añadir eventos para actualizar vista previa en tiempo real
     function setupRealTimePreview() {
         document.querySelectorAll('input, textarea, select').forEach(input => {
@@ -836,10 +1418,15 @@ document.addEventListener('DOMContentLoaded', function() {
             option.addEventListener('click', updatePreview);
         });
     }
-    
+
     // Inicializar eventos de actualización en tiempo real
     setupRealTimePreview();
-    
+
+    // Eventos de envío del formulario
+    document.getElementById('generate-cv').addEventListener('click', function() {
+        generatePdf();
+    });
+
     // Inicializar vista previa
     updatePreview();
 });
