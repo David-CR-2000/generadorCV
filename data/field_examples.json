@@ -1,0 +1,7 @@
+{
+  "nombre": "Ejemplo: Juan Pérez González",
+  "profesion": "Ejemplo: Desarrollador Web Full Stack",
+  "resumen": "Desarrollador web con más de 5 años de experiencia en la creación de aplicaciones web responsivas y escalables. Especializado en JavaScript, React y Node.js. Apasionado por crear soluciones tecnológicas que mejoren la experiencia del usuario y resuelvan problemas de negocio.",
+  "experiencia_descripcion": "• Desarrollé e implementé nuevas funcionalidades para la plataforma principal de la empresa\n• Optimicé el rendimiento del sitio web, mejorando el tiempo de carga en un 40%\n• Colaboré con el equipo de diseño para mejorar la experiencia de usuario\n• Implementé pruebas automatizadas que redujeron los errores en producción en un 25%",
+  "habilidades": "JavaScript, HTML5, CSS3, React, Node.js, Express, MongoDB, Git, Docker, AWS"
+}

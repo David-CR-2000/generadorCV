@@ -1,0 +1,10 @@
+[
+  {"name": "Azul Oscuro", "hex": "#2c3e50"},
+  {"name": "Azul", "hex": "#3498db"},
+  {"name": "Verde", "hex": "#2ecc71"},
+  {"name": "Morado", "hex": "#9b59b6"},
+  {"name": "Rojo", "hex": "#e74c3c"},
+  {"name": "Naranja", "hex": "#e67e22"},
+  {"name": "Gris", "hex": "#7f8c8d"},
+  {"name": "Negro", "hex": "#2d3436"}
+]

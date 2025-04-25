@@ -1,0 +1,242 @@
+/* Estilos generales */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+}
+
+/* Estilos para el formulario */
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+/* Estilos para entradas dinámicas */
+.education-entry, .experience-entry {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.education-entry:hover, .experience-entry:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.remove-entry, .remove-language {
+    transition: all 0.2s ease;
+}
+
+/* Estilos para habilidades */
+#skills-container .skill-tag {
+    background-color: #e9ecef;
+    border-radius: 20px;
+    padding: 5px 12px;
+    margin: 5px 5px 5px 0;
+    display: inline-block;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+#skills-container .skill-tag:hover {
+    background-color: #dee2e6;
+}
+
+#skills-container .skill-tag .remove-skill {
+    margin-left: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Estilos para opciones de plantilla */
+.template-option {
+    text-align: center;
+}
+
+.template-preview {
+    width: 100px;
+    height: 140px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.template-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.ats-preview {
+    background-color: #fff;
+    color: #333;
+    font-weight: bold;
+}
+
+.modern-preview {
+    background-color: #2c3e50;
+    color: white;
+    font-weight: bold;
+}
+
+/* Opciones de color */
+.color-option {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border: 2px solid #333;
+    transform: scale(1.1);
+}
+
+/* Vista previa del CV */
+.cv-preview {
+    min-height: 300px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+.preview-placeholder {
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 270px;
+}
+
+/* Estilos para la vista previa del CV */
+.cv-preview-content {
+    font-family: Arial, sans-serif;
+}
+
+.cv-preview-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.cv-preview-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.cv-preview-contact {
+    font-size: 0.7rem;
+    margin-bottom: 10px;
+}
+
+.cv-preview-section {
+    margin-bottom: 10px;
+}
+
+.cv-preview-section-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 5px;
+    padding-bottom: 2px;
+}
+
+.cv-preview-item {
+    margin-bottom: 5px;
+}
+
+.cv-preview-item-title {
+    font-weight: bold;
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.cv-preview-item-subtitle {
+    font-style: italic;
+    font-size: 0.7rem;
+    margin-bottom: 0;
+}
+
+.cv-preview-item-date {
+    font-size: 0.7rem;
+    color: #6c757d;
+}
+
+.cv-preview-item-description {
+    font-size: 0.7rem;
+    margin-top: 2px;
+}
+
+/* Estilos responsivos */
+@media (max-width: 992px) {
+    .sticky-top {
+        position: relative;
+        top: 0 !important;
+        margin-top: 20px;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Tooltips y ayudas */
+.example-btn {
+    padding: 0.375rem 0.75rem;
+}
+
+.example-btn i {
+    font-size: 1rem;
+}
+
+/* Estilos para el modal */
+.modal-header {
+    border-radius: 10px 10px 0 0;
+}
+
+#example-content {
+    max-height: 300px;
+    overflow-y: auto;
+}

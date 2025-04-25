@@ -1,0 +1,19 @@
+{
+  "name": "generadorcv",
+  "version": "1.0.0",
+  "description": "Generador de CV con Node.js y jsPDF",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+} 
