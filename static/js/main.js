@@ -541,8 +541,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="cv-preview-name">${data.nombre || 'Nombre Completo'}</div>
                     <div class="cv-preview-title">${data.profesion || 'Profesión'}</div>
                     <div class="cv-preview-contact">
-                        ${data.email ? `${data.email} | ` : ''}
-                        ${data.telefono ? `${data.telefono} | ` : ''}
+                        ${data.email ? `${data.email}${data.telefono ? ' | ' : ''}` : ''}
+                        ${data.telefono ? `${data.telefono}${data.direccion ? ' | ' : ''}` : ''}
                         ${data.direccion ? data.direccion : ''}
                     </div>
                     <div class="cv-preview-links">
@@ -989,12 +989,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Función para generar PDF
+    let isGeneratingPdf = false; // Flag para controlar la generación del PDF
+    
     function generatePdf() {
+        // Evitar múltiples generaciones simultáneas
+        if (isGeneratingPdf) {
+            return;
+        }
+
         try {
             // Validar formulario primero
             if (!validateForm()) {
                 return;
             }
+            
+            isGeneratingPdf = true; // Activar flag
             
             // Mostrar mensaje de carga en la interfaz principal
             showLoadingMessage('Generando PDF, por favor espere...');
@@ -1004,15 +1013,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const htmlContent = generatePdfHtml(formData);
             
             // Crear una ventana emergente invisible donde generaremos el PDF
-            // Con tamaño mínimo y fuera de la pantalla visible
             const popupWindow = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000');
             
             if (!popupWindow) {
-                // Si se bloquea la ventana emergente, mostrar mensaje y usar método alternativo
-                console.warn('Ventana emergente bloqueada, usando método alternativo.');
                 hideLoadingMessage();
-                showErrorMessage('Por favor permite ventanas emergentes para generar el PDF correctamente.');
-                generatePdfLegacyMethod(formData);
+                showErrorMessage('Por favor permite ventanas emergentes para generar el PDF.');
+                isGeneratingPdf = false; // Restaurar flag
                 return;
             }
             
@@ -1032,16 +1038,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             background-color: white;
                         }
                     </style>
-                    <!-- Cargar las bibliotecas necesarias en la ventana emergente -->
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
                 </head>
                 <body>
                     <div id="pdf-content">${htmlContent}</div>
                     
                     <script>
-                        // Esta función se ejecuta en la ventana emergente
                         function generatePDFInPopup() {
                             const element = document.getElementById('pdf-content');
                             const filename = 'CV-${formData.nombre ? formData.nombre.replace(/"/g, '\\"') : 'SinNombre'}.pdf';
@@ -1065,32 +1067,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             };
                             
-                            // Esperar a que todo se cargue y renderice correctamente
-                            setTimeout(() => {
-                                try {
-                                    // Generar PDF usando html2pdf
-                                    html2pdf().from(element).set(options).save().then(() => {
-                                        // Cerrar la ventana emergente automáticamente después de la descarga
-                                        setTimeout(() => {
-                                            window.close();
-                                        }, 500);
-                                        
-                                        // Notificar a la ventana principal
-                                        window.opener.postMessage('pdf-generated', '*');
-                                    }).catch(error => {
-                                        console.error('Error al generar PDF:', error);
-                                        window.opener.postMessage('pdf-error', '*');
-                                        setTimeout(() => window.close(), 500);
-                                    });
-                                } catch (error) {
-                                    console.error('Error al generar PDF:', error);
-                                    window.opener.postMessage('pdf-error', '*');
-                                    setTimeout(() => window.close(), 500);
-                                }
-                            }, 1000);
+                            html2pdf().from(element).set(options).save().then(() => {
+                                window.opener.postMessage('pdf-generated', '*');
+                                setTimeout(() => window.close(), 500);
+                            }).catch(error => {
+                                console.error('Error al generar PDF:', error);
+                                window.opener.postMessage('pdf-error', '*');
+                                setTimeout(() => window.close(), 500);
+                            });
                         }
                         
-                        // Iniciar la generación del PDF cuando la página esté completamente cargada
                         window.onload = generatePDFInPopup;
                     </script>
                 </body>
@@ -1100,7 +1086,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Configurar listener para recibir mensajes de la ventana emergente
             const messageListener = function(event) {
-                // Verificar si el mensaje es de nuestra ventana emergente
                 if (event.data === 'pdf-generated') {
                     // PDF generado con éxito
                     hideLoadingMessage();
@@ -1113,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Limpiar listener
                     window.removeEventListener('message', messageListener);
                     
-                    // Intentar cerrar la ventana emergente si aún está abierta
+                    // Intentar cerrar la ventana emergente
                     try {
                         if (!popupWindow.closed) {
                             popupWindow.close();
@@ -1122,15 +1107,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('Error al cerrar ventana:', e);
                     }
                 } else if (event.data === 'pdf-error') {
-                    // Error en la generación del PDF
                     hideLoadingMessage();
-                    showErrorMessage('Hubo un problema al generar el PDF. Intentando método alternativo...');
+                    showErrorMessage('Hubo un problema al generar el PDF. Por favor, inténtalo de nuevo.');
                     
                     // Limpiar listener
                     window.removeEventListener('message', messageListener);
-                    
-                    // Intentar con método alternativo
-                    generatePdfLegacyMethod(formData);
                     
                     // Intentar cerrar la ventana emergente
                     try {
@@ -1146,261 +1127,170 @@ document.addEventListener('DOMContentLoaded', function() {
             // Añadir listener para mensajes
             window.addEventListener('message', messageListener);
             
-            // Establecer un tiempo de espera por si no recibimos respuesta
-            setTimeout(() => {
-                // Verificar si ya se procesó el mensaje
-                const downloadModal = document.getElementById('downloadModal');
-                if (!downloadModal.classList.contains('show')) {
-                    hideLoadingMessage();
-                    showErrorMessage('Tiempo de espera agotado. Intentando método alternativo...');
-                    
-                    // Limpiar listener
-                    window.removeEventListener('message', messageListener);
-                    
-                    // Intentar con método alternativo
-                    generatePdfLegacyMethod(formData);
-                    
-                    // Intentar cerrar la ventana emergente
-                    try {
-                        if (popupWindow && !popupWindow.closed) {
-                            popupWindow.close();
-                        }
-                    } catch (e) {
-                        console.error('Error al cerrar ventana:', e);
-                    }
-                }
-            }, 15000); // 15 segundos de espera máxima
         } catch (error) {
-            console.error('Error global en generación:', error);
+            console.error('Error al generar el PDF:', error);
             hideLoadingMessage();
-            showErrorMessage('Error al generar el PDF. Intentando método alternativo...');
-            
-            // Intentar con método alternativo
-            generatePdfLegacyMethod(getFormData());
+            showErrorMessage('Error al generar el PDF. Por favor, inténtalo de nuevo.');
         }
     }
 
-    // Método alternativo para generar PDF (sin ventana emergente)
-    function generatePdfLegacyMethod(formData) {
-        try {
-            // Mostrar mensaje de carga
-            showLoadingMessage('Generando PDF (método alternativo)...');
-            
-            // Crear un contenedor oculto para el PDF
-            const pdfContainer = document.createElement('div');
-            pdfContainer.id = 'pdf-legacy-container';
-            
-            // Posicionar completamente fuera de la vista y hacerlo invisible
-            pdfContainer.style.cssText = `
-                position: fixed;
-                width: 0;
-                height: 0;
-                left: -9999px;
-                top: -9999px;
-                z-index: -9999;
-                opacity: 0;
-                pointer-events: none;
-                overflow: hidden;
-            `;
-            
-            // Envolver el contenido en otro div con el tamaño de A4
-            const innerContainer = document.createElement('div');
-            innerContainer.style.width = '210mm';
-            innerContainer.style.backgroundColor = 'white';
-            innerContainer.innerHTML = generatePdfHtml(formData);
-            
-            // Añadir al contenedor principal
-            pdfContainer.appendChild(innerContainer);
-            
-            // Añadir a la página pero fuera del flujo normal
-            document.body.appendChild(pdfContainer);
-            
-            // Esperar a que se renderice todo el contenido
-            setTimeout(() => {
-                try {
-                    const options = {
-                        margin: [10, 10, 10, 10],
-                        filename: `CV-${formData.nombre || 'SinNombre'}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { 
-                            scale: 2,
-                            useCORS: true,
-                            allowTaint: true,
-                            logging: false
-                        },
-                        jsPDF: { 
-                            unit: 'mm', 
-                            format: 'a4', 
-                            orientation: 'portrait',
-                            compress: true
-                        }
-                    };
-                    
-                    // Usar html2pdf
-                    html2pdf()
-                        .from(innerContainer)
-                        .set(options)
-                        .save()
-                        .then(() => {
-                            // Limpiar
-                            document.body.removeChild(pdfContainer);
-                            hideLoadingMessage();
-                            showSuccessMessage('¡CV generado con éxito!');
-                            
-                            // Mostrar modal de descarga
-                            const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
-                            downloadModal.show();
-                        })
-                        .catch(error => {
-                            console.error('Error en método legacy:', error);
-                            
-                            // Limpiar
-                            document.body.removeChild(pdfContainer);
-                            hideLoadingMessage();
-                            showErrorMessage('No se pudo generar el PDF. Por favor, inténtalo más tarde o con otro navegador.');
-                        });
-                } catch (error) {
-                    console.error('Error en configuración legacy:', error);
-                    
-                    // Limpiar
-                    if (pdfContainer.parentNode) {
-                        document.body.removeChild(pdfContainer);
-                    }
-                    hideLoadingMessage();
-                    showErrorMessage('Error al generar el PDF. Por favor, inténtalo más tarde.');
-                }
-            }, 1000);
-        } catch (error) {
-            console.error('Error global en método legacy:', error);
-            hideLoadingMessage();
-            showErrorMessage('No se pudo generar el PDF. Por favor, revisa tu conexión e inténtalo nuevamente.');
-        }
-    }
-
-    // Validar formulario completo
-    function validateForm() {
-        const nombre = document.getElementById('nombre').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const telefono = document.getElementById('telefono').value.trim();
-        
-        if (!nombre || !email || !telefono) {
-            showErrorMessage('Por favor completa todos los campos obligatorios (Nombre, Email, Teléfono)');
-            
-            // Mostrar pestaña de datos personales
-            const personalTab = bootstrap.Tab.getOrCreateInstance(document.querySelector('#personal-tab'));
-            personalTab.show();
-            
-            return false;
-        }
-        
-        // Validar email
-        if (!validateEmail(email)) {
-            showErrorMessage('Por favor ingresa un email válido');
-            
-            // Mostrar pestaña de datos personales
-            const personalTab = bootstrap.Tab.getOrCreateInstance(document.querySelector('#personal-tab'));
-            personalTab.show();
-            
-            return false;
-        }
-        
-        return true;
-    }
-
-    // Funciones de utilidad para mostrar mensajes
+    // Funciones para mostrar mensajes
     function showLoadingMessage(message) {
-        // Deshabilitar botón de generar
-        const generateBtn = document.getElementById('generate-cv');
-        if (generateBtn) {
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
+        // Crear un elemento para el mensaje de carga si no existe
+        let loadingDiv = document.getElementById('loading-message');
+        if (!loadingDiv) {
+            loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-message';
+            loadingDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 255, 255, 0.9);
+                padding: 20px;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 9999;
+                text-align: center;
+            `;
+            document.body.appendChild(loadingDiv);
         }
-        
-        // Mostrar mensaje de carga
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'loading-message';
-        loadingDiv.className = 'alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3';
-        loadingDiv.style.zIndex = '9999';
         loadingDiv.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div class="spinner-border spinner-border-sm me-2" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <div>${message}</div>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
             </div>
+            <div class="mt-2">${message}</div>
         `;
-        
-        // Eliminar mensaje existente si hay
-        const existingMessage = document.getElementById('loading-message');
-        if (existingMessage) {
-            existingMessage.remove();
-        }
-        
-        document.body.appendChild(loadingDiv);
+        loadingDiv.style.display = 'block';
     }
 
     function hideLoadingMessage() {
-        // Habilitar botón de generar
-        const generateBtn = document.getElementById('generate-cv');
-        if (generateBtn) {
-            generateBtn.disabled = false;
-            generateBtn.innerHTML = 'Generar CV';
+        const loadingDiv = document.getElementById('loading-message');
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
         }
-        
-        // Eliminar mensaje de carga
-        const loadingMessage = document.getElementById('loading-message');
-        if (loadingMessage) {
-            loadingMessage.remove();
-        }
-    }
-
-    function showSuccessMessage(message) {
-        const successDiv = document.createElement('div');
-        successDiv.id = 'success-message';
-        successDiv.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
-        successDiv.style.zIndex = '9999';
-        successDiv.innerHTML = message;
-        
-        // Eliminar mensaje existente si hay
-        const existingMessage = document.getElementById('success-message');
-        if (existingMessage) {
-            existingMessage.remove();
-        }
-        
-        document.body.appendChild(successDiv);
-        
-        // Auto ocultar después de 5 segundos
-        setTimeout(() => {
-            const msgDiv = document.getElementById('success-message');
-            if (msgDiv) {
-                msgDiv.remove();
-            }
-        }, 5000);
     }
 
     function showErrorMessage(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'error-message';
-        errorDiv.className = 'alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3';
-        errorDiv.style.zIndex = '9999';
-        errorDiv.innerHTML = message;
+        // Crear toast para mostrar el error
+        const toastDiv = document.createElement('div');
+        toastDiv.className = 'toast align-items-center text-white bg-danger border-0';
+        toastDiv.setAttribute('role', 'alert');
+        toastDiv.setAttribute('aria-live', 'assertive');
+        toastDiv.setAttribute('aria-atomic', 'true');
+        toastDiv.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
         
-        // Eliminar mensaje existente si hay
-        const existingMessage = document.getElementById('error-message');
-        if (existingMessage) {
-            existingMessage.remove();
+        // Añadir el toast al contenedor
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
         }
+        toastContainer.appendChild(toastDiv);
         
-        document.body.appendChild(errorDiv);
+        // Mostrar el toast
+        const toast = new bootstrap.Toast(toastDiv);
+        toast.show();
         
-        // Auto ocultar después de 5 segundos
-        setTimeout(() => {
-            const msgDiv = document.getElementById('error-message');
-            if (msgDiv) {
-                msgDiv.remove();
-            }
-        }, 5000);
+        // Eliminar el toast después de ocultarse
+        toastDiv.addEventListener('hidden.bs.toast', function () {
+            toastDiv.remove();
+        });
     }
+
+    function showSuccessMessage(message) {
+        // Crear toast para mostrar el éxito
+        const toastDiv = document.createElement('div');
+        toastDiv.className = 'toast align-items-center text-white bg-success border-0';
+        toastDiv.setAttribute('role', 'alert');
+        toastDiv.setAttribute('aria-live', 'assertive');
+        toastDiv.setAttribute('aria-atomic', 'true');
+        toastDiv.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Añadir el toast al contenedor
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        toastContainer.appendChild(toastDiv);
+        
+        // Mostrar el toast
+        const toast = new bootstrap.Toast(toastDiv);
+        toast.show();
+        
+        // Eliminar el toast después de ocultarse
+        toastDiv.addEventListener('hidden.bs.toast', function () {
+            toastDiv.remove();
+        });
+    }
+
+    function validateForm() {
+        // Validar campos obligatorios
+        const requiredFields = ['nombre', 'email', 'telefono'];
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field);
+            if (!input.value.trim()) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        // Validar email
+        const email = document.getElementById('email');
+        if (email.value.trim() && !validateEmail(email.value)) {
+            email.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        // Validar teléfono
+        const telefono = document.getElementById('telefono');
+        if (telefono.value.trim() && !validatePhone(telefono.value)) {
+            telefono.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        // Validar URLs opcionales
+        const linkedin = document.getElementById('linkedin');
+        if (linkedin.value.trim() && !validateUrl(linkedin.value)) {
+            linkedin.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        const sitioWeb = document.getElementById('sitio_web');
+        if (sitioWeb.value.trim() && !validateUrl(sitioWeb.value)) {
+            sitioWeb.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            showErrorMessage('Por favor, corrige los campos marcados en rojo.');
+        }
+
+        return isValid;
+    }
+
+    // ...existing code...
 
     // Añadir eventos para actualizar vista previa en tiempo real
     function setupRealTimePreview() {
